@@ -68,7 +68,7 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  var temp;
+  var temp = [255, 255, 255];
   void initTimer() {
     if (timer != null && timer!.isActive) return;
 
