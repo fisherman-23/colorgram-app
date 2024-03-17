@@ -57,6 +57,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
+  colorgram:
+    dependency: "direct main"
+    description:
+      name: colorgram
+      sha256: b8efea6f89d7eb1ec59d2e207fac763d74b2676e50e96c6f647f0a1b93681952
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.0.0"
   convert:
     dependency: transitive
     description:

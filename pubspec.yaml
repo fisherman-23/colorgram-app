@@ -42,6 +42,7 @@ dependencies:
   image: ^4.1.7
   cross_file_image: ^1.1.0
   cross_file: ^0.3.4+1
+  colorgram: ^1.0.0
 
 dev_dependencies:
   flutter_test:
