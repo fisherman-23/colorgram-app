@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:rive/rive.dart' as rv;
 import 'package:colorgram/colorgram.dart';
 
 class ProcessPage extends StatefulWidget {
@@ -15,22 +15,17 @@ class ProcessPage extends StatefulWidget {
   State<ProcessPage> createState() => _ProcessPageState(data: fileList);
 }
 
-/// NOTE: Isolates have a completely separate memory space from other threads,
-/// they cannot access instances created from another thread. For that reason, we will have to create a top-level function for COMPUTE function to work
-
-List<List<CgColor>> _processImageList(List<XFile> imageList) {
-  // iterates through all XFile in list, get path string, pass to extractColor(), return List of CgColor class for all image
-  var finalData = imageList.map((e) => extractColor(File(e.path), 10)).toList();
-  print('done');
-  return finalData;
-}
-
+/// NOTE: extractColor() function uses Flutter APIs that will not work in an isolate.
 class _ProcessPageState extends State<ProcessPage> {
   // this function uses compute to implment colorgram algorithm on a seperate isolate
-  Future<List<List<CgColor>>> _processImageListOnIsolate(
-      List<XFile> data) async {
-    var finalData = await compute(_processImageList, data);
-    return finalData;
+  Future<List<List<CgColor>>> _processImageList(List<XFile> files) async {
+    List<List<CgColor>> store = [];
+
+    for (XFile i in files) {
+      store.add(await extractColor(FileImage(File(i.path)), 10));
+    }
+
+    return store;
   }
 
   final List<XFile> data; //List of chosen image in XFile class
@@ -38,7 +33,7 @@ class _ProcessPageState extends State<ProcessPage> {
   _ProcessPageState({required this.data});
 
 // late so it only runs when called by FutureBuilder
-  late var colors = _processImageListOnIsolate(data);
+  late var colors = _processImageList(data);
   Color boxHighlightColor = Colors.transparent;
   List selectedColorCode = ['', '', '', ''];
   @override
@@ -49,12 +44,13 @@ class _ProcessPageState extends State<ProcessPage> {
             child: FutureBuilder(
                 future: colors,
                 builder: (context, snapshot) {
+                  Widget child;
                   if (snapshot.hasData &&
                       snapshot.connectionState == ConnectionState.done) {
                     var colorData = snapshot.data;
 // colorData = List of List of CgColor
 // colorDataIn = List of CgColor
-                    return ListView.builder(
+                    child = ListView.builder(
                       itemCount: colorData!.length,
                       itemBuilder: (context, index) {
                         var colorDataIn = colorData[index];
@@ -125,7 +121,7 @@ class _ProcessPageState extends State<ProcessPage> {
                                                       boxColors.b)),
                                             ));
                                       }))),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                               Container(
                                 margin: EdgeInsets.all(10),
                                 height: 30,
@@ -136,7 +132,7 @@ class _ProcessPageState extends State<ProcessPage> {
                                         end: Alignment.centerRight,
                                         colors: colorList)),
                               ),
-                              SizedBox(height: 20),
+                              const SizedBox(height: 20),
                               Text(
                                   'Selected: RGB: ${selectedColorCode[0]} ${selectedColorCode[1]} ${selectedColorCode[2]} \n Percentage: ${selectedColorCode[3]}%'),
                               SizedBox(height: 10),
@@ -173,21 +169,40 @@ class _ProcessPageState extends State<ProcessPage> {
                       },
                     );
                   } else if (snapshot.hasError) {
-                    return Text('An error has occured, please try again');
+                    child = Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 120,
+                            height: 120,
+                            child: rv.RiveAnimation.asset(
+                              r'assets\505.riv',
+                            ),
+                          ),
+                          SizedBox(height: 20),
+                          Text('An error has occured, please try again')
+                        ]);
                   } else {
-                    return Column(
+                    child = Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           SizedBox(
                             width: 60,
                             height: 60,
-                            child: CircularProgressIndicator(),
+                            child: rv.RiveAnimation.asset(
+                              r'assets\epar-loading.riv',
+                            ),
                           ),
                           SizedBox(height: 20),
                           Text("Running Colorgram Algorithm")
                         ]);
                   }
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: child,
+                  );
                 })));
   }
 }
